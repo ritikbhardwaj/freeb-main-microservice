@@ -9,6 +9,7 @@ const express = require('express'),
   { PORT, SESSION_SECRET } = process.env,
   bodyParser = require('body-parser'),
   session = require('express-session'),
+  cors = require('cors'),
   dynamoDBStore = require('dynamodb-store'),
   { AWS_ACCESS_KEY, AWS_SECRET_KEY, AWS_REGION } = process.env
 
@@ -32,6 +33,18 @@ const { variables } = require('./utils/Middlewares')
 const appRoutes = require('./AppRoutes')
 
 // Middlewares
+app.use(
+  cors({
+    //To allow requests from client
+    origin: [
+      'http://localhost:8080',
+      'http://127.0.0.1',
+      'http://3.108.236.1/',
+    ],
+    credentials: true,
+    exposedHeaders: ['set-cookie'],
+  })
+)
 app.use(bodyParser.json())
 app.use(
   bodyParser.urlencoded({
@@ -45,8 +58,8 @@ app.use(
     secret: SESSION_SECRET,
     resave: true,
     saveUninitialized: false,
-    cookie: { maxAge: 1000 * 60 * 30 },
-    //store: new dynamoDBStore(dynamoDBOptions),
+    cookie: { maxAge: 1000 * 60 * 60 * 10 },
+    store: new dynamoDBStore(dynamoDBOptions),
   })
 )
 
@@ -58,5 +71,5 @@ appRoutes(app)
 
 // Listening to PORT
 app.listen(PORT, () => {
-  console.log(`Listening on port ${PORT}`)
+  console.log(`Main API Listening on port ${PORT}`)
 })

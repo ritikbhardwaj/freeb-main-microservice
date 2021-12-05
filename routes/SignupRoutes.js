@@ -12,7 +12,7 @@ mw = require('../utils/Middlewares')
 //  - no validation of credentials
 router.post('/signup', async (req, res) => {
   const { firstName, lastName, userName, email, userPassword } = req.body
-  let { session } = req
+  //let { session } = req
   const userData = {
     user_id: getUid(),
     username: userName,
@@ -21,16 +21,19 @@ router.post('/signup', async (req, res) => {
     email: email,
     password: getHash(userPassword),
   }
+
   try {
     const { affectedRows } = await db.query('INSERT INTO USERS SET ?', userData)
     // If the user was registered
     // Set the session info
     if (affectedRows) {
+      // DEBUGGING
       console.log(userData)
+
       const { user_id, username, email } = userData
-      session.id = user_id
-      session.email = email
-      session.username = username
+      // session.id = user_id
+      // session.email = email
+      // session.username = username
 
       res.status(200).json({
         status: 200,
@@ -39,7 +42,7 @@ router.post('/signup', async (req, res) => {
       })
     }
   } catch (e) {
-    res.status(500).json({
+    res.status(200).json({
       status: 500,
       code: 'Internal Server Error.',
       message: e,

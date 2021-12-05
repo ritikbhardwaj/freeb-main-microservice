@@ -28,7 +28,7 @@ router.post('/login', async (req, res) => {
           message: 'User logged in successfully.',
         })
       } else {
-        res.status(400).json({
+        res.status(200).json({
           status: 400,
           code: 'Bad request.',
           message: 'Incorrect Password.',
@@ -36,14 +36,14 @@ router.post('/login', async (req, res) => {
       }
       // If the password checks out set the session
     } else {
-      res.status(400).json({
+      res.status(200).json({
         status: 400,
         code: 'Bad request.',
         message: 'User not found.',
       })
     }
   } catch (e) {
-    res.status(500).json({
+    res.status(200).json({
       status: 500,
       code: 'Internal Server Error.',
       message: e,

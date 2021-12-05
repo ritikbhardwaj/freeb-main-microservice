@@ -37,7 +37,7 @@ router.get('/posts', async (req, res) => {
       if (user == 'all') {
         // If request all posts
         let q = await db.query(
-          'SELECT * from post_card WHERE post_key <> ""',
+          'SELECT * from post_cards WHERE post_key <> ""',
           []
         )
         res.status(200).json({
@@ -50,7 +50,7 @@ router.get('/posts', async (req, res) => {
         const { user_id, username } = req.session
         if (user_id) {
           // If the user is logged in
-          let q = await db.query('SELECT * from post_card WHERE username=?', [
+          let q = await db.query('SELECT * from post_cards WHERE username=?', [
             username,
           ])
           res.status(200).json({
@@ -80,16 +80,24 @@ router.get('/posts', async (req, res) => {
 // Create a post
 router.post('/posts', upload.single('image'), async (req, res) => {
   // Get the user id from the session store
-  const { userId } = req.session
+  const { user_id } = req.session
+
+  if (!req.session.id) {
+    return res.status(200).json({
+      status: 401,
+      code: 'Unauthorized.',
+      message: 'Please login.',
+    })
+  }
 
   // The key of the file uploaded
   let key = ''
 
   if (!req.file) {
-    return res.status(400).json({
+    return res.status(200).json({
       status: 400,
       code: 'Bad request.',
-      message: 'No file uploaded.',
+      message: 'Please provide a file.',
     })
   }
 
@@ -98,18 +106,24 @@ router.post('/posts', upload.single('image'), async (req, res) => {
   let data = new formData()
   data.append('image', fileStream)
   try {
-    const response = await axios.post('http://localhost:3000/images', data, {
-      headers: data.getHeaders(),
-    })
+    const response = await axios.post(
+      'http://localhost:3000/api/s3/images',
+      data,
+      {
+        headers: data.getHeaders(),
+      }
+    )
 
     key = response.data.message.key
 
     const postData = {
       post_id: getUid(),
-      user_id: 'abcdef',
+      user_id: user_id,
       post_date: getDate(),
       post_key: response.data.message.key,
     }
+
+    console.log('#########')
 
     const q = await db.query('INSERT INTO posts SET ?', postData)
 
@@ -118,20 +132,15 @@ router.post('/posts', upload.single('image'), async (req, res) => {
       code: 'Success.',
       message: response.data.message,
     })
+
+    // After the file is uploaded, delte it
+    await unlinkFile(path)
   } catch (e) {
-    // In case of faliure, delete the uploaded file.
-    try {
-      const response = await axios.delete(`http://localhost:3000/images/${key}`)
-    } catch (e) {
-      res.status(500).json({
-        status: 500,
-        code: 'Internal Server Error.',
-        message: e.message,
-      })
-    }
-    res.status(500).json({
+    // Even if there is some error, delte the file
+    await unlinkFile(path)
+    res.status(200).json({
       status: 500,
-      code: 'Internal Server Error.',
+      code: 'Internal server error.',
       message: e.message,
     })
   }
